@@ -1,6 +1,7 @@
 import socket
 from threading import Thread
 import tkinter
+import os
 
 hostName = socket.gethostname()
 
@@ -37,7 +38,10 @@ class Client:
         while True:
             try:
                 new_message = self.sock.recv(buf_size).decode() #Receive message from server
-                self.msg_list.insert(tkinter.END, new_message) #Add new msg to chat history
+                if new_message == 'send hostname':
+                    self.sock.send(bytes(os.getlogin(), 'utf8'))
+                else:
+                    self.msg_list.insert(tkinter.END, new_message) #Add new msg to chat history
             except OSError: #Other client may have left the chat
                 break
 

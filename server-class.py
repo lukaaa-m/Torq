@@ -31,6 +31,7 @@ class Server:
             Thread(target=self.handleClient, args=(client,)).start()
 
     def handleClient(self, client):
+        client.send(bytes('send hostname', 'utf8'))
         name = client.recv(self.buf_size).decode()
         welcome = 'Welcome %s! If you ever want to quit, type {quit} to exit.' % name
         self.clients[client] = name #Adds new client to server list
@@ -45,7 +46,7 @@ class Server:
             if msg != bytes('{quit}', 'utf8'):
                 self.broadcast(msg, name+': ') #Send message to chat room
             else:
-                #client.send(bytes('{quit}', 'utf8'))
+                client.send(bytes('{quit}', 'utf8'))
                 client.close()
                 del self.clients[client]
                 self.broadcast(bytes('%s has left the chat.' % name, 'utf8'))

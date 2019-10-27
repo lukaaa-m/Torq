@@ -38,6 +38,7 @@ class Client:
         while True:
             try:
                 new_message = self.sock.recv(buf_size).decode() #Receive message from server
+                print(new_message)
                 if new_message == 'send hostname':
                     self.sock.send(bytes(os.getlogin(), 'utf8'))
                 else:

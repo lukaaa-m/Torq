@@ -54,7 +54,7 @@ class Client:
         #Frame for chat window
         self.chat_frame = tkinter.Frame(self.window)
         self.msg = tkinter.StringVar()  #For the messages to be sent
-        self.msg.set("Type your messages here.")
+        self.msg.set("")
         self.scrollbar = tkinter.Scrollbar(self.chat_frame)  #To navigate through past messages
 
         #Box to contain message history

@@ -17,8 +17,8 @@ class Server:
         self.clients = {} #Stores client names
         self.addresses = {} #Stores client addresses
 
-        self.HOST = ''
-        self.PORT = choosePort()
+        self.HOST = 'localhost'
+        self.PORT = 42069 #choosePort()
         self.buf_size = 1024
 
         self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -39,7 +39,7 @@ class Server:
         while True:
             #send UDP broadcast
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
-            sock.sendto(MESSAGE, (self.HOST, self.PORT))
+            sock.sendto(bytes(socket.gethostname(),'utf8'), (self.HOST, self.PORT))
 
             client, client_address = self.server_sock.accept() #Accept client connection
             print(getTimeStamp("[%H:%M:%S]"), '%s: %s has connected.' % client_address)

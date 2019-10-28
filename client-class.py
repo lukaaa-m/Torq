@@ -2,13 +2,14 @@ import socket
 from threading import Thread
 import tkinter
 import os
+from functools import partial
 
-hostName = socket.gethostname()
 
-HOST = socket.gethostbyname(hostName)
-PORT = 42069  
 
-buf_size = 1024 #largest message size accepted by the client socket
+#HOST = socket.gethostbyname(hostName)
+#PORT = 42069  
+
+
 
 class Client:
     def __init__(self, sock=None):
@@ -21,9 +22,10 @@ class Client:
         self.window = tkinter.Tk() #Creates window for chat instance
         self.window.title('Torq')
 
-        self.sock.connect((HOST,PORT))
+        self.bufsize = 1024 #largest message size accepted by the client socket
+        #self.sock.connect((HOST,PORT))
 
-        self.initGUI()        
+        self.initServerListGUI()        
 
     def send(self, event=None):
         temp_msg = self.msg.get() #Gets msg from tkinter input field
@@ -37,7 +39,7 @@ class Client:
     def receive(self):
         while True:
             try:
-                new_message = self.sock.recv(buf_size).decode() #Receive message from server
+                new_message = self.sock.recv(self.bufsize).decode() #Receive message from server
                 print(new_message)
                 if new_message == 'send hostname':
                     self.sock.send(bytes(os.getlogin(), 'utf8'))
@@ -48,21 +50,55 @@ class Client:
                 break
 
     def findServers(self):
-        sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM) # UDP
-        sock.bind((UDP_IP, UDP_PORT)) 
-        while True:
-            data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
-            self.connect(addr)
-            print "received message:", data
+        servers = [] #Stores all discovered servers
+        for port in range(42069,42079):
+            print ('started looking for ports')
+            sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM) #UDP connection
+            sock.bind(('', port))
+            print('bound to port')
+            servername, addr = sock.recvfrom(self.bufsize) #Receives UDP broadcast from server (contains a message + server address)
+            if servername is not None:
+                print('received from port')
+                servers.add(servername, addr)
+            
+            #self.connect(addr)
+        print('finished looking for ports')
+        return servers
 
     def connect(self,addr):
         self.sock.connect((addr))
+        self.initGUI()
 
-    def onClosing(self, event=None):
-            self.msg.set('{quit}')
-            self.send()
+        receive_thread = Thread(target=client.receive)
+        receive_thread.start()
+
+
+    def initServerListGUI(self):
+        print('started server list gui')
+        server_frame = tkinter.Frame(self.window)
+        server_list = tkinter.Listbox(server_frame, height=10, width=50)
+        servers = self.findServers()
+        
+
+        for server in servers:
+            server_list.insert(tkinter.END, server[0]) #Inserts first part of server tuple (the hostname) into the listbox
+        
+    
+        choose_server = tkinter.Button(self.window, text='Join') #Runs connect with the second part (the address) of the server connected to the selected index in the listbox
+        if server_list.curselection():
+            selected_server = servers[server_list.curselection()[0]]
+            choose_server.command(partial(self.connect(selected_server[1])))
+        
+        server_list.pack()
+        choose_server.pack()
+
+        self.window.protocol("WM_DELETE_WINDOW", self.window.quit())
+
 
     def initGUI(self):
+        for widget in self.window.winfo_children():
+            widget.destroy() #Clears all widgets from the serverlist screen
+
         #Frame for chat window
         self.chat_frame = tkinter.Frame(self.window)
         self.msg = tkinter.StringVar()  #For the messages to be sent
@@ -85,10 +121,10 @@ class Client:
 
         self.window.protocol("WM_DELETE_WINDOW", self.onClosing)
 
+    def onClosing(self, event=None):
+        self.msg.set('{quit}')
+        self.send()
 
 client = Client()
-
-receive_thread = Thread(target=client.receive)
-receive_thread.start()
 
 tkinter.mainloop()

@@ -6,7 +6,8 @@ import os
 hostName = socket.gethostname()
 
 HOST = socket.gethostbyname(hostName)
-#HOST = '10.223.130.72'
+#HOST = '10.223.130.72' #Luka's laptop
+#HOST = '192.168.1.18' #Alex's home PC
 PORT = 42069 
 
 buf_size = 1024 #largest message size accepted by the client socket

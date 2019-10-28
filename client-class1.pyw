@@ -5,7 +5,7 @@ import os
 
 hostName = socket.gethostname()
 
-HOST = socket.gethostbyname(hostName)
+HOST = '10.223.130.72'
 PORT = 42069  
 
 buf_size = 1024 #largest message size accepted by the client socket
@@ -43,24 +43,12 @@ class Client:
                     self.sock.send(bytes(os.getlogin(), 'utf8'))
                 else:
                     self.msg_list.insert(tkinter.END, new_message) #Add new msg to chat history
-                    
             except OSError: #Other client may have left the chat
                 break
 
-    def findServers(self):
-        sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM) # UDP
-        sock.bind((UDP_IP, UDP_PORT)) 
-        while True:
-            data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
-            self.connect(addr)
-            print "received message:", data
-
-    def connect(self,addr):
-        self.sock.connect((addr))
-
     def onClosing(self, event=None):
-            self.msg.set('{quit}')
-            self.send()
+        self.msg.set('{quit}')
+        self.send()
 
     def initGUI(self):
         #Frame for chat window

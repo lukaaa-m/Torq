@@ -5,13 +5,20 @@ def getTimeStamp(format):
     dt_obj = datetime.now()
     return dt_obj.strftime(format)
 
+def choosePort():
+    for port in range(42069, 42079):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            res = sock.connect_ex(('', port))
+            if res == 0:
+                return port
+
 class Server:
     def __init__(self):
         self.clients = {} #Stores client names
         self.addresses = {} #Stores client addresses
 
         self.HOST = ''
-        self.PORT = 42069
+        self.PORT = choosePort()
         self.buf_size = 1024
 
         self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -19,6 +26,7 @@ class Server:
         self.server_sock.listen(5)
 
         print('Server initialised on', getTimeStamp('%d-%b-%Y'), 'at', getTimeStamp('%H:%M:%S'))
+        print('Port:', self.PORT)
         print("Waiting for connection...")
 
         #Starts coroutine to constantly listen for new connections
@@ -29,6 +37,10 @@ class Server:
 
     def AcceptIncomingConns(self):
         while True:
+            #send UDP broadcast
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
+            sock.sendto(MESSAGE, (self.HOST, self.PORT))
+
             client, client_address = self.server_sock.accept() #Accept client connection
             print(getTimeStamp("[%H:%M:%S]"), '%s: %s has connected.' % client_address)
 
@@ -68,8 +80,9 @@ class Server:
                 break
 
     def broadcast(self, msg, prefix=''):
+        print(getTimeStamp("[%H:%M:%S]"), prefix + msg.decode())
         for client in self.clients:
             client.send(bytes(prefix, 'utf8') + msg)
-            print(getTimeStamp("[%H:%M:%S]"), prefix + msg.decode())
+            
 
 server = Server()

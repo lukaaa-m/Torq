@@ -7,7 +7,7 @@ from functools import partial
 
 
 #HOST = socket.gethostbyname(hostName)
-#PORT = 42069  
+PORT = 42069  
 
 
 
@@ -19,13 +19,15 @@ class Client:
         else:
             self.sock = sock
 
-        self.window = tkinter.Tk() #Creates window for chat instance
-        self.window.title('Torq')
+        self.HOST = ''
+        self.PORT = 42069
+
 
         self.bufsize = 1024 #largest message size accepted by the client socket
         #self.sock.connect((HOST,PORT))
 
-        self.initServerListGUI()        
+        self.initServerSearchGUI()
+        self.initChatGUI()     
 
     def send(self, event=None):
         temp_msg = self.msg.get() #Gets msg from tkinter input field
@@ -44,63 +46,41 @@ class Client:
                 if new_message == 'send hostname':
                     self.sock.send(bytes(os.getlogin(), 'utf8'))
                 else:
-                    self.msg_list.insert(tkinter.END, new_message) #Add new msg to chat history
-                    
-            except OSError: #Other client may have left the chat
-                break
-
-    def findServers(self):
-        servers = [] #Stores all discovered servers
-        for port in range(42069,42079):
-            print ('started looking for ports')
-            sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM) #UDP connection
-            sock.bind(('', port))
-            print('bound to port')
-            servername, addr = sock.recvfrom(self.bufsize) #Receives UDP broadcast from server (contains a message + server address)
-            if servername is not None:
-                print('received from port')
-                servers.add(servername, addr)
+                    self.msg_list.insert(tkinter.END, new_message) #Add new msg to chat history 
             
-            #self.connect(addr)
-        print('finished looking for ports')
-        return servers
+            except OSError: #Other client may have left the chat
+                #print('No socket yet')
+                continue
 
-    def connect(self,addr):
-        self.sock.connect((addr))
-        self.initGUI()
+    def connect(self, event=None):
+        print(self.search.get())
+        #print(socket.gethostbyname(self.search.get()))
+        self.HOST = socket.gethostbyname(self.search.get())
+        self.sock.connect((self.HOST,self.PORT))
+                
 
-        receive_thread = Thread(target=client.receive)
-        receive_thread.start()
+        self.search_window.quit()
 
+    def initServerSearchGUI(self):
+        self.search_window = tkinter.Tk() #Creates window for server search
+        self.search_window.title('Torq')
 
-    def initServerListGUI(self):
-        print('started server list gui')
-        server_frame = tkinter.Frame(self.window)
-        server_list = tkinter.Listbox(server_frame, height=10, width=50)
-        servers = self.findServers()
-        
+        self.search = tkinter.StringVar()
+        self.search.set('')
+        search_field = tkinter.Entry(self.search_window, textvariable=self.search)
+        search_field.bind("<Return>", self.connect)
+        search_field.pack()
 
-        for server in servers:
-            server_list.insert(tkinter.END, server[0]) #Inserts first part of server tuple (the hostname) into the listbox
-        
-    
-        choose_server = tkinter.Button(self.window, text='Join') #Runs connect with the second part (the address) of the server connected to the selected index in the listbox
-        if server_list.curselection():
-            selected_server = servers[server_list.curselection()[0]]
-            choose_server.command(partial(self.connect(selected_server[1])))
-        
-        server_list.pack()
-        choose_server.pack()
+        self.send_button = tkinter.Button(self.search_window, text="Send", command=self.connect)
+        self.send_button.pack()
 
-        self.window.protocol("WM_DELETE_WINDOW", self.window.quit())
+        self.search_window.protocol("WM_DELETE_WINDOW", self.search_window.quit())
 
-
-    def initGUI(self):
-        for widget in self.window.winfo_children():
-            widget.destroy() #Clears all widgets from the serverlist screen
+    def initChatGUI(self):
+        self.chat_window = tkinter.Tk()
 
         #Frame for chat window
-        self.chat_frame = tkinter.Frame(self.window)
+        self.chat_frame = tkinter.Frame(self.chat_window)
         self.msg = tkinter.StringVar()  #For the messages to be sent
         self.msg.set("")
         self.scrollbar = tkinter.Scrollbar(self.chat_frame)  #To navigate through past messages
@@ -113,18 +93,23 @@ class Client:
         self.chat_frame.pack()
 
         #Message input field
-        self.msg_field = tkinter.Entry(self.window, textvariable=self.msg)
+        self.msg_field = tkinter.Entry(self.chat_window, textvariable=self.msg)
         self.msg_field.bind("<Return>", self.send)
         self.msg_field.pack()
-        self.send_button = tkinter.Button(self.window, text="Send", command=self.send)
+        self.send_button = tkinter.Button(self.chat_window, text="Send", command=self.send)
         self.send_button.pack()
 
-        self.window.protocol("WM_DELETE_WINDOW", self.onClosing)
+        self.chat_window.protocol("WM_DELETE_WINDOW", self.onClosing)
 
+        
+        
     def onClosing(self, event=None):
         self.msg.set('{quit}')
         self.send()
 
 client = Client()
+
+receive_thread = Thread(target=client.receive)
+receive_thread.start()
 
 tkinter.mainloop()

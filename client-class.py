@@ -1,16 +1,10 @@
 import socket
 from threading import Thread
-import tkinter
+import tkinter as tk
 import os
 
-hostName = socket.gethostname()
-
-HOST = socket.gethostbyname(hostName)
-#HOST = '10.223.130.72' #Luka's laptop
-#HOST = '192.168.1.18' #Alex's home PC
-PORT = 42069 
-
-buf_size = 1024 #largest message size accepted by the client socket
+#make a server search class as well
+#only allow program to progress 'after' a host has been ascertained from the server search
 
 class Client:
     def __init__(self, sock=None):
@@ -20,10 +14,12 @@ class Client:
         else:
             self.sock = sock
 
-        self.window = tkinter.Tk() #Creates window for chat instance
-        self.window.title('Torq')
+        self.bufsize = 1024 #largest message size accepted by the client socket
 
-        self.sock.connect((HOST,PORT))
+        self.initChatGUI()
+
+        receive_thread = Thread(target=self.receive)
+        receive_thread.start()
 
         self.initGUI()
 
@@ -40,7 +36,7 @@ class Client:
 
         if temp_msg == '{quit}': #Closes socket and chat window if window is exited
             self.sock.close()
-            self.window.quit()
+            self.chat_window.quit()
 
     def receive(self):
         while True:
@@ -54,18 +50,18 @@ class Client:
                     self.msg_list.configure(state="disabled")
                     self.msg_list.see(tkinter.END)
             except OSError: #Other client may have left the chat
-                break
+                #print('No socket yet')
+                continue    
 
-    def onClosing(self, event=None):
-        self.msg.set('{quit}')
-        self.send()
+    def initChatGUI(self):
+        self.chat_window = tk.Tk()
+        self.chat_window.title('Torq')
 
-    def initGUI(self):
         #Frame for chat window
         self.chat_frame = tkinter.Frame(self.window, bg="#36393e")
         self.msg = tkinter.StringVar()  #For the messages to be sent
         self.msg.set("")
-        self.scrollbar = tkinter.Scrollbar(self.chat_frame)  #To navigate through past messages
+        self.scrollbar = tk.Scrollbar(self.chat_frame)  #To navigate through past messages
 
         #Box to contain message history
         self.msg_list = tkinter.Text(self.chat_frame, height=25, width=60, yscrollcommand=self.scrollbar.set, wrap=tkinter.WORD, padx=10, font=("Verdana", 10), bg="#36393e", fg="white", spacing1=6, selectborderwidth=0, bd=0, selectbackground="gray")
@@ -82,10 +78,10 @@ class Client:
         self.window.protocol("WM_DELETE_WINDOW", self.onClosing)
         self.window.resizable(False, False)
 
+        self.search_window.destroy()
 
-client = Client()
+        self.client = Client(client_sock)
 
-receive_thread = Thread(target=client.receive)
-receive_thread.start()
+search = ServerSearch()
+#client = Client()
 
-tkinter.mainloop()

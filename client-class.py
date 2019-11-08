@@ -21,6 +21,10 @@ class Client:
         receive_thread = Thread(target=self.receive)
         receive_thread.start()
 
+        #self.sock.connect(('localhost',42069))
+
+        tk.mainloop()
+
     def send(self, event=None):
         temp_msg = self.msg.get() #Gets msg from tk input field
         self.msg.set('') #Clears input field
@@ -90,6 +94,8 @@ class ServerSearch:
 
         self.search_window.protocol("WM_DELETE_WINDOW", self.search_window.quit())
 
+        tk.mainloop()
+
     def createClient(self, event=None):
         client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -98,10 +104,10 @@ class ServerSearch:
         HOST = socket.gethostbyname(self.search.get())
         client_sock.connect((HOST,PORT))
 
-        self.search_window.quit()
+        self.search_window.destroy()
 
         self.client = Client(client_sock)
 
 search = ServerSearch()
+#client = Client()
 
-tk.mainloop()

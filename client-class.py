@@ -3,8 +3,18 @@ from threading import Thread
 import tkinter as tk
 import os
 
+<<<<<<< HEAD
 #make a server search class as well
 #only allow program to progress 'after' a host has been ascertained from the server search
+=======
+hostName = socket.gethostname()
+
+HOST = socket.gethostbyname(hostName)
+#HOST = '10.223.130.72'
+PORT = 42069 
+
+buf_size = 1024 #largest message size accepted by the client socket
+>>>>>>> parent of 4332b35... Update client-class.py
 
 class Client:
     def __init__(self, sock=None):

@@ -6,6 +6,7 @@ import os
 #make a server search class as well
 #only allow program to progress 'after' a host has been ascertained from the server search
 
+
 class Client:
     def __init__(self, sock=None):
         #Creates a socket instance if there isn't one already

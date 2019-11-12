@@ -23,9 +23,6 @@ class Client:
 
         tk.mainloop()
 
-        
-
-
     def send(self, event=None):
         temp_msg = self.msg.get() #Gets msg from tkinter input field
         if(len(temp_msg) > 1014):
@@ -86,6 +83,7 @@ class Client:
     def onClosing(self, event=None):
         self.msg.set('{quit}')
         self.send()
+        search = ServerSearch()
 
 class ServerSearch:
     def __init__(self):
@@ -115,7 +113,7 @@ class ServerSearch:
 
         self.search_window.destroy()
 
-        self.client = Client(client_sock)
+        client = Client(client_sock)
 
 search = ServerSearch()
 #client = Client()

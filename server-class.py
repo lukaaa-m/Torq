@@ -20,6 +20,7 @@ class Server:
     def __init__(self):
         self.clients = {} #Stores client names
         self.addresses = {} #Stores client addresses
+        self.muted_clients = {}
 
         self.HOST = ''
         self.PORT = 42069 #choosePort()
@@ -33,13 +34,18 @@ class Server:
         print('Port:', self.PORT)
         print("Waiting for connection...")
 
+        #Starts coroutine to wait for server commands
+        command_thread = Thread(target=self.handleCommands)
+        command_thread.start()
+
         #Starts coroutine to constantly listen for new connections
-        accept_thread = Thread(target=self.AcceptIncomingConns)
+        accept_thread = Thread(target=self.acceptIncomingConns)
         accept_thread.start()
         accept_thread.join()
         self.server_sock.close()
 
-    def AcceptIncomingConns(self):
+        
+    def acceptIncomingConns(self):
         while True:
             
             client, client_address = self.server_sock.accept() #Accept client connection
@@ -65,7 +71,10 @@ class Server:
             try:
                 new_msg = client.recv(self.buf_size) #Receives messages from client
                 if new_msg != bytes('{quit}', 'utf8'):
-                    self.broadcast(self.censorBadWords(new_msg), name+': ') #Send message to chat room
+                    if client not in self.muted_clients:
+                        self.broadcast(self.censorBadWords(new_msg), name+': ') #Send message to chat room
+                    else:
+                        client.send(bytes('You have been muted','utf8'))
                 else:
                     #client.send(bytes('{quit}', 'utf8'))
                     client.close()
@@ -95,6 +104,37 @@ class Server:
             msg = re.sub(word, '*'*len(word), msg, flags=re.IGNORECASE)
 
         return bytes(msg, 'utf8')
-            
+        
+    def mute(self, target):
+        for client in self.clients:
+            if self.clients[client] == target:
+                self.muted_clients[client] = self.clients[client]
+
+    def kick(self, target):
+        for client in self.clients.copy():
+            if self.clients[client] == target:
+                
+                client.send(bytes('You were kicked','utf8'))
+
+                self.broadcast(bytes('%s was kicked' % target, 'utf8'))
+
+                client.close()
+                del client
+
+    def handleCommands(self):
+        self.commands = {
+            'mute' : self.mute,
+            'kick' : self.kick
+        }
+        while True:
+            try:
+                command = input()
+                action, target = command.split()[0], command.split()[1]
+
+                self.commands[action](target)
+            except IndexError:
+                print('Error: format >> [action] [target]')
+         
+
 
 server = Server()

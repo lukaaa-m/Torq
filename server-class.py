@@ -1,6 +1,10 @@
 import socket
 from threading import Thread
 from datetime import datetime
+from badwords import bad_words
+import re
+
+
 def getTimeStamp(format):
     dt_obj = datetime.now()
     return dt_obj.strftime(format)
@@ -59,9 +63,9 @@ class Server:
         
         while True:
             try:
-                msg = client.recv(self.buf_size) #Receives messages from client
-                if msg != bytes('{quit}', 'utf8'):
-                    self.broadcast(msg, name+': ') #Send message to chat room
+                new_msg = client.recv(self.buf_size) #Receives messages from client
+                if new_msg != bytes('{quit}', 'utf8'):
+                    self.broadcast(self.censorBadWords(new_msg), name+': ') #Send message to chat room
                 else:
                     #client.send(bytes('{quit}', 'utf8'))
                     client.close()
@@ -72,14 +76,25 @@ class Server:
             except OSError:
                 client.close()
                 del self.clients[client]
+
                 self.broadcast(bytes('%s has left the chat.' % name, 'utf8'))
                 print(getTimeStamp("[%H:%M:%S]"), '%s: %s has disconnected.' % self.addresses[client])
+
                 break
 
     def broadcast(self, msg, prefix=''):
         print(getTimeStamp("[%H:%M:%S]"), prefix + msg.decode())
         for client in self.clients:
             client.send(bytes(prefix, 'utf8') + msg)
+
+    def censorBadWords(self, msg):
+        msg = msg.decode()
+        
+        for word in bad_words:
+            #word to replace, replace with word, original msg
+            msg = re.sub(word, '*'*len(word), msg, flags=re.IGNORECASE)
+
+        return bytes(msg, 'utf8')
             
 
 server = Server()

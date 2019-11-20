@@ -1,1 +1,1 @@
-python client-class.py
+python client-class.pyw

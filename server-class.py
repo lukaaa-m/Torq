@@ -83,13 +83,15 @@ class Server:
                     print(getTimeStamp("[%H:%M:%S]"), '%s: %s has disconnected.' % self.addresses[client])
                     break
             except OSError:
-                client.close()
-                del self.clients[client]
+                try:
+                    client.close()
+                    del self.clients[client]
 
-                self.broadcast(bytes('%s has left the chat.' % name, 'utf8'))
-                print(getTimeStamp("[%H:%M:%S]"), '%s: %s has disconnected.' % self.addresses[client])
-
-                break
+                    self.broadcast(bytes('%s has left the chat.' % name, 'utf8'))
+                    print(getTimeStamp("[%H:%M:%S]"), '%s: %s has disconnected.' % self.addresses[client])
+                    break
+                except KeyError:
+                    break
 
     def broadcast(self, msg, prefix=''):
         print(getTimeStamp("[%H:%M:%S]"), prefix + msg.decode())
@@ -105,34 +107,55 @@ class Server:
 
         return bytes(msg, 'utf8')
         
+    '''*SERVER COMMANDS*'''
+
     def mute(self, target):
-        for client in self.clients:
-            if self.clients[client] == target:
-                self.muted_clients[client] = self.clients[client]
+        self.muted_clients[target] = self.clients[target]
 
-    def kick(self, target):
-        for client in self.clients.copy():
-            if self.clients[client] == target:
+    def unmute(self,target):
+        target.send(bytes('You have been unmuted','utf8'))
+        del self.muted_clients[target]
                 
-                client.send(bytes('You were kicked','utf8'))
+    def kick(self, target):
+        target.send(bytes('You were kicked','utf8'))
 
-                self.broadcast(bytes('%s was kicked' % target, 'utf8'))
+        self.broadcast(bytes('%s was kicked' % self.clients[target], 'utf8'))
 
-                client.close()
-                del client
+        target.close()
+        del self.clients[target]
+
+    def badWordDump(self, target):
+        for word in bad_words:
+            target.send(bytes(word+'\n','utf8'))
 
     def handleCommands(self):
         self.commands = {
             'mute' : self.mute,
-            'kick' : self.kick
+            'kick' : self.kick,
+            'unmute' : self.unmute,
+            'badworddump' : self.badWordDump
         }
         while True:
             try:
                 command = input()
                 action, target = command.split()[0], command.split()[1]
+                target_exists = False
 
-                self.commands[action](target)
-            except IndexError:
+                if action not in self.commands:
+                    print('That command is not valid')
+                    continue
+                
+                for client in self.clients:
+                    if self.clients[client] == target:
+                        target = client
+                        target_exists = True
+
+                if not target_exists:
+                    print('That client does not exist')
+                    continue
+
+                self.commands[action](target) #Runs the action's corresponding function (from self.commands dict) with target parameter
+            except (IndexError, KeyError):
                 print('Error: format >> [action] [target]')
          
 
